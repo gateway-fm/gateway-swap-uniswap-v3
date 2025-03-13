@@ -13,14 +13,9 @@ interface IUniswapV3PoolDeployer {
     /// Returns token1 The second token of the pool by address sort order
     /// Returns fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
     /// Returns tickSpacing The minimum number of ticks between initialized ticks
+    /// Returns swapRouter The SwapRouter contract address
     function parameters()
         external
         view
-        returns (
-            address factory,
-            address token0,
-            address token1,
-            uint24 fee,
-            int24 tickSpacing
-        );
+        returns (address factory, address token0, address token1, uint24 fee, int24 tickSpacing, address swapRouter);
 }
