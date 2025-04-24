@@ -98,9 +98,6 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     /// @inheritdoc IUniswapV3PoolState
     Oracle.Observation[65535] public override observations;
 
-    /// @dev SwapRouter address. Only SwapRouter approved to operate over Pool
-    address public immutable swapRouter;
-
     /// @dev Mutually exclusive reentrancy protection into the pool to/from a method. This method also prevents entrance
     /// to a function before the pool is initialized. The reentrancy guard is required throughout the contract because
     /// we use balance checks to determine the payment status of interactions such as mint, swap and flash.
@@ -117,14 +114,15 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         _;
     }
 
-    modifier onlySwapRouter() {
-        require(msg.sender == swapRouter, 'unauthorized');
+    /// @dev Prevents calling a function from anyone except the address returned by IUniswapV3Factory#router()
+    modifier onlyAllowedRouter() {
+        require(msg.sender == IUniswapV3Factory(factory).router());
         _;
     }
 
     constructor() {
         int24 _tickSpacing;
-        (factory, token0, token1, fee, _tickSpacing, swapRouter) = IUniswapV3PoolDeployer(msg.sender).parameters();
+        (factory, token0, token1, fee, _tickSpacing) = IUniswapV3PoolDeployer(msg.sender).parameters();
         tickSpacing = _tickSpacing;
 
         maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
@@ -604,7 +602,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external override noDelegateCall onlySwapRouter returns (int256 amount0, int256 amount1) {
+    ) external override noDelegateCall onlyAllowedRouter returns (int256 amount0, int256 amount1) {
         require(amountSpecified != 0, 'AS');
 
         Slot0 memory slot0Start = slot0;
