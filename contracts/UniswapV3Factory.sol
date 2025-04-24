@@ -19,6 +19,15 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
+    // Swap router address. Only one router can operate over the pools.
+    address public override router;
+
+    /// @dev Prevents calling a function from anyone except the factory owner
+    modifier onlyFactoryOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+
     constructor() {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
@@ -36,7 +45,7 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         address tokenA,
         address tokenB,
         uint24 fee
-    ) external override noDelegateCall returns (address pool) {
+    ) external override noDelegateCall onlyFactoryOwner returns (address pool) {
         require(tokenA != tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0));
@@ -51,15 +60,17 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
     }
 
     /// @inheritdoc IUniswapV3Factory
-    function setOwner(address _owner) external override {
-        require(msg.sender == owner);
+    function setOwner(address _owner) external override onlyFactoryOwner {
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
 
+    function setRouter(address _router) external onlyFactoryOwner {
+        router = _router;
+    }
+
     /// @inheritdoc IUniswapV3Factory
-    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
-        require(msg.sender == owner);
+    function enableFeeAmount(uint24 fee, int24 tickSpacing) public override onlyFactoryOwner {
         require(fee < 1000000);
         // tick spacing is capped at 16384 to prevent the situation where tickSpacing is so large that
         // TickBitmap#nextInitializedTickWithinOneWord overflows int24 container from a valid tick
